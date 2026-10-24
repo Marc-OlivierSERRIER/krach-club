@@ -1,0 +1,14 @@
+{
+  "name": "krach-club",
+  "private": true,
+  "type": "module",
+  "description": "Ligue de bourse fictive entre potes : relevé quotidien des cours.",
+  "scripts": {
+    "prices": "node scripts/update-prices.mjs"
+  },
+  "engines": { "node": ">=22" },
+  "dependencies": {
+    "firebase-admin": "13.1.0",
+    "yahoo-finance2": "4.0.2"
+  }
+}

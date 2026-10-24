@@ -1,0 +1,62 @@
+rules_version = '2';
+// Règles de sécurité de Krach Club : à coller dans Console Firebase > Firestore Database > Règles.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+
+    // Profil joueur : chacun écrit seulement le sien.
+    match /players/{uid} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['pseudo', 'createdAt'])
+        && request.resource.data.pseudo is string
+        && request.resource.data.pseudo.size() > 0 && request.resource.data.pseudo.size() <= 20;
+    }
+
+    // Banques : on crée la sienne, on ne peut que s'y ajouter soi-même.
+    match /banks/{bankId} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['name', 'code', 'createdBy', 'createdAt', 'members'])
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 40
+        && request.resource.data.code is string && request.resource.data.code.size() == 6
+        && request.resource.data.members.keys().hasOnly([request.auth.uid]);
+      allow update: if signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members'])
+        && request.resource.data.members.diff(resource.data.members).affectedKeys().hasOnly([request.auth.uid])
+        && request.resource.data.members[request.auth.uid] == true;
+    }
+
+    // Ordres : création seulement, horodatés par le serveur, jamais modifiables (anti-triche).
+    match /orders/{orderId} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.ts == request.time
+        && request.resource.data.bank is string
+        && get(/databases/$(database)/documents/banks/$(request.resource.data.bank)).data.members[request.auth.uid] == true
+        && request.resource.data.sym is string && request.resource.data.sym.matches('^[A-Z0-9][A-Z0-9.\\-]{0,19}$')
+        && request.resource.data.name is string && request.resource.data.name.size() <= 60
+        && (
+          (request.resource.data.side == 'buy'
+            && request.resource.data.keys().hasOnly(['uid', 'bank', 'sym', 'name', 'side', 'amount', 'ts'])
+            && request.resource.data.amount is number
+            && request.resource.data.amount > 0 && request.resource.data.amount <= 1000)
+          ||
+          (request.resource.data.side == 'sell'
+            && request.resource.data.keys().hasOnly(['uid', 'bank', 'sym', 'name', 'side', 'frac', 'ts'])
+            && request.resource.data.frac is number
+            && request.resource.data.frac > 0 && request.resource.data.frac <= 1)
+        );
+      allow update, delete: if false;
+    }
+
+    // Relevés de cours : écrits uniquement par le robot GitHub (clé admin), lisibles par les joueurs.
+    match /runs/{runId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+  }
+}
