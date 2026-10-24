@@ -49,7 +49,7 @@ const tsMs = t => t && typeof t.toMillis === "function" ? t.toMillis() : (typeof
 
 /* ---------- état ---------- */
 const S = { uid: null, players: {}, banks: {}, runs: [], orders: [], tab: "pf", bank: null, week: null, cat: "Tout", q: "", authMode: "login",
-  ready: { p: false, b: false, r: false, o: false }, unsubs: [], unsubOrders: null, ordersBank: null };
+  ready: { p: false, b: false, r: false, o: false }, unsubs: [], unsubOrders: null, ordersBank: undefined };
 try { S.bank = localStorage.getItem("kc-bank"); } catch (e) {}
 
 /* ---------- données de marché ---------- */
@@ -378,7 +378,7 @@ function openSheet(sym) {
 window.addEventListener("resize", () => { clearTimeout(S.rt); S.rt = setTimeout(() => { if (S.tab === "pf" || S.tab === "mk") refresh(); }, 200); });
 
 /* ---------- démarrage ---------- */
-function stopAll() { S.unsubs.forEach(u => u()); S.unsubs = []; if (S.unsubOrders) S.unsubOrders(); S.unsubOrders = null; S.ordersBank = null; S.ready = { p: false, b: false, r: false, o: false }; }
+function stopAll() { S.unsubs.forEach(u => u()); S.unsubs = []; if (S.unsubOrders) S.unsubOrders(); S.unsubOrders = null; S.ordersBank = undefined; S.ready = { p: false, b: false, r: false, o: false }; }
 
 onAuthStateChanged(auth, async user => {
   stopAll();
