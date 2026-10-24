@@ -1,0 +1,22 @@
+name: Relevé des cours
+
+on:
+  schedule:
+    # Tous les jours à 21:30 UTC (23:30 à Paris l'été, 22:30 l'hiver), après la clôture de Wall Street.
+    - cron: "30 21 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: node scripts/update-prices.mjs
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
